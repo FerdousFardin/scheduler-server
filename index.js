@@ -21,12 +21,13 @@ async function run() {
   try {
     await client.connect();
     const eventsCollection = client.db("scheduler").collection("events");
+    const usersCollection = client.db("scheduler").collection("users");
     //get all events
     app.get("/events", async (req, res) => {
       const events = await eventsCollection.find({}).toArray();
       res.send({ events: events });
     });
-    //post a new event
+    //add a new event
     app.post("/event", async (req, res) => {
       const eventInfo = req.body;
       const filter = {
@@ -50,12 +51,28 @@ async function run() {
       const result = await eventsCollection.deleteOne(query);
       res.send(result);
     });
+    //add a new user
+    app.post("/user", async (req, res) => {
+      const userInfo = req.body;
+      const filter = {
+        email: userInfo.email,
+        role: userInfo.role,
+      };
+      const updatedDoc = { $set: userInfo };
+      const options = { upsert: true };
+      const result = await usersCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
+    });
   } finally {
   }
 }
 run().catch(console.dir);
 app.get("/", function (req, res) {
-  res.send("Running on port " + port);
+  res.send("Hello from scheduler backend. Running on port " + port);
 });
 app.listen(port, () => {
   console.log("Running on port", port);
