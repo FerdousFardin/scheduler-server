@@ -51,6 +51,18 @@ async function run() {
       const result = await eventsCollection.deleteOne(query);
       res.send(result);
     });
+    //get user
+    app.get("/user", async (req, res) => {
+      const userInfo = req.query;
+      const users = await usersCollection.find({}).toArray();
+      const user = await usersCollection.findOne({
+        email: userInfo.email,
+        role: userInfo.role,
+      });
+      console.log({ user, users });
+      if (user) res.send({ result: true, user: user });
+      else res.send({ result: false });
+    });
     //add a new user
     app.post("/user", async (req, res) => {
       const userInfo = req.body;
