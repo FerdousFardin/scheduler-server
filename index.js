@@ -22,11 +22,12 @@ async function run() {
     await client.connect();
     const eventsCollection = client.db("scheduler").collection("events");
     const usersCollection = client.db("scheduler").collection("users");
-    //get all events
+
     app.get("/events", async (req, res) => {
       const events = await eventsCollection.find({}).toArray();
       res.send({ events: events });
     });
+
     //add a new event
     app.post("/event", async (req, res) => {
       const eventInfo = req.body;
@@ -57,18 +58,29 @@ async function run() {
       const users = await usersCollection.find({}).toArray();
       const user = await usersCollection.findOne({
         email: userInfo.email,
-        role: userInfo.role,
       });
       console.log({ user, users });
-      if (user) res.send({ result: true, user: user });
-      else res.send({ result: false });
+      if (user && user.role === userInfo.role)
+        res.send({ result: true, user: user });
+      else if (user && user.role !== userInfo.role)
+        res.send({ result: false, user: "Wrong Role" });
+      else {
+        const result = await usersCollection.insertOne({
+          email: userInfo.email,
+          role: userInfo.role,
+        });
+        if (result.acknowledged)
+          res.send({
+            result: true,
+            user: { email: userInfo.email, role: userInfo.role },
+          });
+      }
     });
     //add a new user
     app.post("/user", async (req, res) => {
       const userInfo = req.body;
       const filter = {
         email: userInfo.email,
-        role: userInfo.role,
       };
       const updatedDoc = { $set: userInfo };
       const options = { upsert: true };
