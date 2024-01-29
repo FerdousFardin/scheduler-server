@@ -22,9 +22,20 @@ async function run() {
     await client.connect();
     const eventsCollection = client.db("scheduler").collection("events");
     const usersCollection = client.db("scheduler").collection("users");
+    const schedulesCollection = client.db("scheduler").collection("schedules");
 
     app.get("/events", async (req, res) => {
-      const events = await eventsCollection.find({}).toArray();
+      const reqQuery = req.query;
+      let query = {};
+      switch (reqQuery) {
+        case "email":
+          query.email = req.query.email;
+          break;
+        default:
+          query = {};
+          break;
+      }
+      const events = await eventsCollection.find(query).toArray();
       res.send({ events: events });
     });
 
@@ -89,6 +100,46 @@ async function run() {
         updatedDoc,
         options
       );
+      res.send(result);
+    });
+
+    //find schedules
+    app.get("/schedules", async (req, res) => {
+      const reqQuery = req.query;
+      let query = {};
+      switch (reqQuery) {
+        case "email":
+          query.email = req.query.email;
+          break;
+        default:
+          query = {};
+          break;
+      }
+      const schedules = await schedulesCollection.find(query).toArray();
+      res.send(schedules);
+    });
+    //add or edit a new schedule
+    app.post("/schedules", async (req, res) => {
+      const scheduleInfo = req.body;
+      const filter = {
+        "schedule.start": { $eq: scheduleInfo.schedule.start },
+        "schedule.end": { $eq: scheduleInfo.schedule.end },
+        email: { $eq: scheduleInfo.email },
+      };
+      const updatedDoc = { $set: scheduleInfo };
+      const options = { upsert: true };
+      const result = await schedulesCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
+    });
+    //delete a schedule
+    app.delete("/schedules", async (req, res) => {
+      const id = req.query.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await schedulesCollection.deleteOne(query);
       res.send(result);
     });
   } finally {
