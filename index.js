@@ -27,14 +27,13 @@ async function run() {
     app.get("/events", async (req, res) => {
       const reqQuery = req.query;
       let query = {};
-      switch (reqQuery) {
-        case "email":
-          query.email = req.query.email;
-          break;
-        default:
-          query = {};
-          break;
+
+      if (reqQuery.email) {
+        query.email = reqQuery.email;
+      } else {
+        query = {};
       }
+
       const events = await eventsCollection.find(query).toArray();
       res.send({ events: events });
     });
@@ -56,6 +55,7 @@ async function run() {
       );
       res.send(result);
     });
+
     //delete an event
     app.delete("/event", async (req, res) => {
       const id = req.query;
@@ -63,6 +63,7 @@ async function run() {
       const result = await eventsCollection.deleteOne(query);
       res.send(result);
     });
+
     //get user
     app.get("/user", async (req, res) => {
       const userInfo = req.query;
@@ -87,6 +88,7 @@ async function run() {
           });
       }
     });
+
     //add a new user
     app.post("/user", async (req, res) => {
       const userInfo = req.body;
@@ -107,25 +109,35 @@ async function run() {
     app.get("/schedules", async (req, res) => {
       const reqQuery = req.query;
       let query = {};
-      switch (reqQuery) {
-        case "email":
-          query.email = req.query.email;
-          break;
-        default:
-          query = {};
-          break;
+
+      if (reqQuery.email) {
+        query.email = reqQuery.email;
+      } else if (reqQuery.scheduledTo) {
+        query["schedule.scheduledTo"] = reqQuery.scheduledTo;
+      } else {
+        query = {};
       }
+
       const schedules = await schedulesCollection.find(query).toArray();
       res.send(schedules);
     });
+
     //add or edit a new schedule
     app.post("/schedules", async (req, res) => {
       const scheduleInfo = req.body;
-      const filter = {
-        "schedule.start": { $eq: scheduleInfo.schedule.start },
-        "schedule.end": { $eq: scheduleInfo.schedule.end },
-        email: { $eq: scheduleInfo.email },
-      };
+
+      // Constructing the filter object
+      const filter = {};
+
+      if (scheduleInfo._id) {
+        filter._id = new ObjectId(scheduleInfo._id);
+      } else {
+        filter["schedule.start"] = { $eq: scheduleInfo.schedule.start };
+        filter["schedule.end"] = { $eq: scheduleInfo.schedule.end };
+        filter.email = { $eq: scheduleInfo.email };
+      }
+      delete scheduleInfo._id;
+
       const updatedDoc = { $set: scheduleInfo };
       const options = { upsert: true };
       const result = await schedulesCollection.updateOne(
@@ -134,7 +146,9 @@ async function run() {
         options
       );
       res.send(result);
+      // res.send();
     });
+
     //delete a schedule
     app.delete("/schedules", async (req, res) => {
       const id = req.query.id;
