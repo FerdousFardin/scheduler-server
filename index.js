@@ -35,6 +35,7 @@ async function run() {
       }
 
       const events = await eventsCollection.find(query).toArray();
+
       res.send({ events: events });
     });
 
@@ -58,9 +59,10 @@ async function run() {
 
     //delete an event
     app.delete("/event", async (req, res) => {
-      const id = req.query;
+      const id = req.query.id;
       const query = { _id: new ObjectId(id) };
       const result = await eventsCollection.deleteOne(query);
+
       res.send(result);
     });
 
@@ -71,7 +73,7 @@ async function run() {
       const user = await usersCollection.findOne({
         email: userInfo.email,
       });
-      console.log({ user, users });
+
       if (user && user.role === userInfo.role)
         res.send({ result: true, user: user });
       else if (user && user.role !== userInfo.role)
